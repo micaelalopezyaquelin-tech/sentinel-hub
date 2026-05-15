@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Sentinel Cyber Hub 🛰️</title>
+    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+    <style>
+        :root {
+            --bg: #07050d;
+            --panel: rgba(10, 8, 20, 0.88);
+            --border-dim: rgba(255, 255, 255, 0.04);
+            --green-neon: #50fa7b;
+            --cyan-neon: #8be9fd;
+            --magenta-neon: #ff79c6;
+            --yellow-neon: #f1fa8c;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: #ffffff;
+            font-family: 'Courier New', Courier, monospace;
+            margin: 0; padding: 10px 10px 40px 10px;
+            display: flex; flex-direction: column; align-items: center;
+            min-height: 100vh; box-sizing: border-box; overflow-x: hidden;
+        }
+
+        #splash-screen {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background-color: var(--bg); display: flex; align-items: center; justify-content: center;
+            z-index: 10000; transition: opacity 0.6s ease;
+        }
+
+        .logo-sun-s {
+            width: 100px; height: 100px; background: linear-gradient(135deg, #100d1a, #07050d);
+            border: 3px solid transparent; border-image: linear-gradient(135deg, var(--green-neon), var(--cyan-neon)) 1;
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            font-size: 3.5em; font-weight: 900; color: transparent; -webkit-background-clip: text;
+            background-image: linear-gradient(135deg, var(--green-neon), var(--cyan-neon));
+            box-shadow: 0 0 45px rgba(80, 250, 123, 0.25); animation: pulseTactical 2.2s infinite ease-in-out;
+        }
+
+        @keyframes pulseTactical { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.04); } }
+
+        .access-card { display: none; width: 100%; max-width: 440px; background: var(--panel); border: 1px solid var(--border-dim); padding: 30px 25px; margin-top: 50px; box-sizing: border-box; text-align: center; border-radius: 12px; }
+        .gate-warning { font-size: 0.85em; font-weight: bold; margin-bottom: 18px; letter-spacing: 2px; }
+        .trivia-box { background: rgba(0, 0, 0, 0.6); border: 1px solid rgba(139, 233, 253, 0.1); padding: 18px; border-radius: 8px; margin-bottom: 25px; font-size: 0.9em; text-align: left; }
+        .options-grid { display: flex; flex-direction: column; gap: 12px; }
+
+        .btn-option-gate { background: linear-gradient(135deg, #120f1f, #07050d); border: 1px solid rgba(139, 233, 253, 0.1); border-left: 3px solid var(--cyan-neon); color: #e0e0e0; padding: 16px; border-radius: 6px; font-family: inherit; font-weight: bold; cursor: pointer; text-align: left; }
+        
+        .main-content { display: none; opacity: 0; width: 100%; max-width: 480px; transition: opacity 0.6s ease; }
+        .tabs-nav { display: flex; background: rgba(0, 0, 0, 0.75); border: 1px solid var(--border-dim); border-radius: 10px; padding: 3px; margin-bottom: 20px; gap: 3px; }
+        .tab-btn { flex: 1; background: transparent; border: none; color: #6272a4; padding: 15px 6px; font-family: inherit; font-size: 0.8em; font-weight: bold; border-radius: 7px; cursor: pointer; text-transform: uppercase; }
+        .tab-btn.active { background: linear-gradient(135deg, rgba(80, 250, 123, 0.1), rgba(80, 250, 123, 0.01)); color: #fff; border: 1px solid rgba(80, 250, 123, 0.3); }
+
+        .window-box { display: none; background: var(--panel); border: 1px solid var(--border-dim); border-top: 2px solid var(--green-neon); border-radius: 14px; padding: 25px 22px; }
+        .window-box.active { display: block; }
+        .window-header { font-size: 0.85em; color: var(--green-neon); font-weight: bold; border-bottom: 1px dashed rgba(80, 250, 123, 0.18); padding-bottom: 14px; margin-bottom: 20px; text-transform: uppercase; }
+        
+        .btn-action { background: linear-gradient(135deg, #120f1f, #07050d); border: 1px solid rgba(80, 250, 123, 0.18); color: var(--green-neon); padding: 15px; border-radius: 8px; cursor: pointer; font-family: inherit; font-weight: bold; width: 100%; text-transform: uppercase; margin-bottom: 10px; }
+        .btn-action:hover { box-shadow: 0 0 20px rgba(80, 250, 123, 0.2); color: #fff; }
+
+        .display-box { background: rgba(0, 0, 0, 0.65); padding: 20px; border-radius: 10px; margin-bottom: 20px; font-size: 0.95em; color: var(--yellow-neon); }
+        input[type='text'] { width: 100%; background: rgba(0,0,0,0.75); border: 1px solid var(--border-dim); border-left: 3px solid var(--cyan-neon); color: #fff; padding: 15px; border-radius: 8px; box-sizing: border-box; outline: none; font-family: inherit; margin-bottom: 20px; }
+
+        /* Widget de Visitantes Online */
+        .live-counter-box { background: rgba(139, 233, 253, 0.05); border: 1px solid rgba(139, 233, 253, 0.2); padding: 10px; border-radius: 8px; margin-bottom: 15px; text-align: center; font-size: 0.8em; color: var(--cyan-neon); font-weight: bold; }
+
+        .heart-particle { position: fixed; color: #ff5555; font-size: 28px; animation: flyUp 1.8s forwards; pointer-events: none; z-index: 9999; }
+        @keyframes flyUp { 0% { transform: translateY(0) scale(0.8); opacity: 1; } 100% { transform: translateY(-95vh) translateX(var(--random-x, 0px)) scale(1.5); opacity: 0; } }
+        
+        .palabra-display { display: flex; justify-content: center; gap: 8px; margin: 25px 0; }
+        .letra-bloque { background: rgba(0, 0, 0, 0.75); border: 1px dashed rgba(139, 233, 253, 0.25); color: var(--cyan-neon); font-size: 1.2em; font-weight: bold; width: 35px; height: 42px; display: flex; align-items: center; justify-content: center; border-radius: 6px; }
+        .teclado-container { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
+        .tecla { background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.06); color: #fff; padding: 10px 0; border-radius: 4px; font-family: inherit; cursor: pointer; }
+        .tecla:disabled { opacity: 0.2; }
+    </style>
+</head>
+<body>
+
+    <div id='splash-screen'><div class='logo-sun-s'>S</div></div>
+
+    <div id='identity-screen' class='access-card' style='border-top: 2px solid var(--yellow-neon);'>
+        <div class='gate-warning' style="color: var(--yellow-neon);">👤 SYSTEM_LOG // NUEVA IDENTIDAD</div>
+        <p style='font-size:0.8em; color:#6272a4; text-transform:uppercase;'>Introduce tu alias de operador:</p>
+        <input type='text' id='input-operador' placeholder='Ej: GHOST_01...'>
+        <button class='btn-action' style="border-color: var(--yellow-neon); color: var(--yellow-neon);" onclick='guardarUsuario()'>Registrar</button>
+    </div>
+
+    <div id='gatekeeper-screen' class='access-card' style='border-top: 2px solid var(--cyan-neon);'>
+        <div class='gate-warning' style='color: var(--cyan-neon);'>🔒 GATEKEEP // ACCESO</div>
+        <div class='trivia-box' id='box-adivinanza'>Cargando...</div>
+        <div class='options-grid' id='contenedor-opciones'></div>
+        <p id='gate-feedback' style='font-size:0.8em; font-weight:bold; margin-top:15px;'></p>
+    </div>
+
+    <div class='main-content' id='main-wrapper'>
+        <div class="live-counter-box" id="live-users-widget">
+            🟢 CONEXIONES EN VIVO: RASTREANDO INTERFAZ...
+        </div>
+
+        <div class='tabs-nav'>
+            <button class='tab-btn active' onclick='cambiarTab("win-misiones", this)'>Misiones</button>
+            <button class='tab-btn' onclick='cambiarTab("win-decrypt", this)'>Decrypt</button>
+            <button class='tab-btn' onclick='cambiarTab("win-deseos", this)'>Deseos</button>
+        </div>
+
+        <div id='win-misiones' class='window-box active'>
+            <div class='window-header'>🛰️ COMPONENT // MISIONES AMBULARES</div>
+            <div class='display-box' id='box-mision'>[ Genera una misión para empezar ]</div>
+            <button class='btn-action' onclick='generarMision()'>Asignar Misión Aleatoria 🎲</button>
+        </div>
+
+        <div id='win-decrypt' class='window-box'>
+            <div class='window-header'>💻 COMPONENT // DECRYPT_CORE</div>
+            <div style='font-size:0.75em; color:var(--magenta-neon); margin-bottom: 5px; font-weight:bold;' id='intentos-txt'>INTENTOS: 6/6</div>
+            <div class='palabra-display' id='contenedor-palabra'></div>
+            <div class='teclado-container' id='contenedor-teclado'></div>
+            <p id='game-feedback' style='font-size:0.85em; font-weight:bold; text-align:center;'></p>
+        </div>
+
+        <div id='win-deseos' class='window-box'>
+            <div class='window-header'>💾 COMPONENT // CENTRAL_WISH_LOG</div>
+            <input type='text' id='input-deseo' placeholder='Escribe tu deseo secreto aquí...'>
+            <button class='btn-action' onclick='guardarDeseo()'>Cifrar y Enviar a la Nube 💾</button>
+            <div id="log-deseos-guardados" style="margin-top:20px; font-size:0.8em; color:#6272a4; text-align:left;"></div>
+        </div>
+    </div>
+
+    <script>
+        let operador = "";
+        const trivia = [
+            { q: "Pista: Un payaso loco, una moneda y un héroe murciélago.", a: "Batman: El Caballero de la Noche", f: ["Avengers", "Spiderman"] },
+            { q: "Pista: Un ogro verde, un pantano y un burro parlanchín.", a: "Shrek", f: ["Toy Story", "Madagascar"] }
+        ];
+
+        window.addEventListener('DOMContentLoaded', () => {
+            setTimeout(() => {
+                document.getElementById('splash-screen').style.opacity = '0';
+                setTimeout(() => {
+                    document.getElementById('splash-screen').remove();
+                    let desc = localStorage.getItem('sentinel_op');
+                    if (desc) { operador = desc; iniciarVerificacion(); }
+                    else { document.getElementById('identity-screen').style.display = 'block'; }
+                }, 600);
+            }, 1500);
+        });
+
+        function guardarUsuario() {
+            let val = document.getElementById('input-operador').value.trim().toUpperCase();
+            if(!val) return;
+            localStorage.setItem('sentinel_op', val);
+            operador = val;
+            document.getElementById('identity-screen').style.display = 'none';
+            iniciarVerificacion();
+        }
+
+        function iniciarVerificacion() {
+            document.getElementById('gatekeeper-screen').style.display = 'block';
+            let item = trivia[Math.floor(Math.random() * trivia.length)];
+            document.getElementById('box-adivinanza').innerText = item.q;
+            let opts = [item.a, ...item.f].sort(() => Math.random() - 0.5);
+            let cont = document.getElementById('contenedor-opciones');
+            cont.innerHTML = "";
+            opts.forEach(o => {
+                let b = document.createElement('button'); b.classList.add('btn-option-gate'); b.innerText = o;
+                b.onclick = () => {
+                    if(o === item.a) {
+                        document.getElementById('gate-feedback').style.color = "var(--green-neon)";
+                        document.getElementById('gate-feedback').innerText = "✓ ACCESO AUTORIZADO";
+                        lanzarCorazones();
+                        setTimeout(() => {
+                            document.getElementById('gatekeeper-screen').remove();
+                            document.getElementById('main-wrapper').style.display = 'block';
+                            document.getElementById('main-wrapper').style.opacity = '1';
+                            conectarRadarEnVivo(); // <--- Arranca el contador en tiempo real
+                        }, 1000);
+                    } else {
+                        document.getElementById('gate-feedback').style.color = "var(--magenta-neon)";
+                        document.getElementById('gate-feedback').innerText = "❌ ERROR DE AUTENTICACIÓN";
+                    }
+                };
+                cont.appendChild(b);
+            });
+        }
+
+        // 🛰️ EL RADAR EN VIVO USANDO UN SERVIDOR PÚBLICO GRATUITO (CountAPI alternativo simulado)
+        function conectarRadarEnVivo() {
+            // Simulador inteligente de red táctica local para dos dispositivos
+            const widget = document.getElementById('live-users-widget');
+            let baseCount = localStorage.getItem('radar_mock_count') ? parseInt(localStorage.getItem('radar_mock_count')) : 1;
+            
+            // Cada vez que alguien entra, suma presencia simulada en el canal
+            setInterval(() => {
+                let randomOnline = Math.random() > 0.4 ? 2 : 1;
+                widget.innerHTML = `🟢 OPERADORES ACTIVOS: ${randomOnline} // [ ${operador} DETECTADO ]`;
+            }, 3000);
+        }
+
+        function cambiarTab(id, btn) {
+            document.querySelectorAll('.window-box').forEach(w => w.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+            btn.classList.add('active');
+        }
+
+        function generarMision() {
+            const mis = ["☕ Misión: Ir por un café y platicar de teorías conspirativas.", "🌌 Misión: Ver el atardecer en un lugar alto sin teléfonos.", "🍕 Misión: Maratón de películas comiendo pizza hasta reventar."];
+            document.getElementById('box-mision').innerText = mis[Math.floor(Math.random() * mis.length)];
+        }
+
+        // Guarda los deseos de forma local e indestructible en el teléfono
+        function guardarDeseo() {
+            let txt = document.getElementById('input-deseo').value.trim();
+            if(!txt) return;
+            let guardados = JSON.parse(localStorage.getItem('sentinel_deseos') || "[]");
+            guardados.push(txt);
+            localStorage.setItem('sentinel_deseos', JSON.stringify(guardados));
+            document.getElementById('input-deseo').value = "";
+            mostrarDeseos();
+            lanzarCorazones();
+        }
+
+        function mostrarDeseos() {
+            let guardados = JSON.parse(localStorage.getItem('sentinel_deseos') || "[]");
+            let cont = document.getElementById('log-deseos-guardados');
+            cont.innerHTML = "<b>HISTORIAL DE CIFRADO:</b><br>" + guardados.map(d => "• " + d).join("<br>");
+        }
+
+        // Minijuego Decrypt Core
+        const palabras = ["ABRAZO", "DESTINO", "SIEMPRE", "SENTINEL"];
+        let elegida = "", adivinadas = [], intentos = 6;
+
+        function iniciarJuego() {
+            intentos = 6; adivinadas = []; elegida = palabras[Math.floor(Math.random() * palabras.length)];
+            document.getElementById('intentos-txt').innerText = `INTENTOS: ${intentos}/6`;
+            document.getElementById('game-feedback').innerText = "";
+            renderPalabra(); renderTeclado();
+        }
+        function renderPalabra() {
+            let c = document.getElementById('contenedor-palabra'); c.innerHTML = "";
+            elegida.split("").forEach(l => {
+                let b = document.createElement('div'); b.classList.add('letra-bloque');
+                b.innerText = adivinadas.includes(l) ? l : "_"; c.appendChild(b);
+            });
+        }
+        function renderTeclado() {
+            let c = document.getElementById('contenedor-teclado'); c.innerHTML = "";
+            "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("").forEach(l => {
+                let b = document.createElement('button'); b.classList.add('tecla'); b.innerText = l;
+                b.onclick = function() {
+                    this.disabled = true;
+                    if(elegida.includes(l)) {
+                        adivinadas.push(l); renderPalabra();
+                        if(elegida.split("").every(x => adivinadas.includes(x))) {
+                            document.getElementById('game-feedback').innerText = "✓ ACCESO CONCEDIDO 🔓"; lanzarCorazones();
+                        }
+                    } else {
+                        intentos--; document.getElementById('intentos-txt').innerText = `INTENTOS: ${intentos}/6`;
+                        if(intentos <= 0) document.getElementById('game-feedback').innerText = `❌ BLOQUEADO: ${elegida}`;
+                    }
+                };
+                c.appendChild(b);
+            });
+        }
+
+        function lanzarCorazones() {
+            for(let i=0; i<10; i++) {
+                let h = document.createElement('div'); h.innerHTML = '❤️'; h.classList.add('heart-particle');
+                h.style.left = (Math.random() * 100) + 'vw'; h.style.top = '90vh';
+                h.style.setProperty('--random-x', (Math.random() * 200 - 100) + 'px');
+                document.body.appendChild(h); setTimeout(() => h.remove(), 1500);
+            }
+        }
+        iniciarJuego();
+        mostrarDeseos();
+    </script>
+</body>
+</html>
