@@ -3,4 +3,4 @@ services:
     name: sentinel-hub
     runtime: python
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn -k gevent -w 1 app:app
+    startCommand: gunicorn app:app
