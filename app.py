@@ -1,14 +1,23 @@
-from flask import Flask, request, render_template_string
+from flask import Flask, request, render_template_string, redirect, url_for
+from flask_socketio import SocketIO, emit
 import os
 
 app = Flask(__name__)
+app.config['SECRET_KEY'] = 'sentinel_secret_key_1029'
+# Habilitamos WebSockets para comunicación en tiempo real
+socketio = SocketIO(app, cors_allowed_origins="*")
 
-# Las misiones y juegos se quedan exactamente igual con tu diseño Cyberpunk
+# Diccionario en la memoria del servidor para rastrear conexiones en vivo
+# Formato: { socket_id: "NOMBRE_DE_OPERADOR" }
+usuarios_conectados = {}
+
+# Código HTML de la página principal (Se queda igual, pero ahora avisa al servidor quién es)
 PAGINA_NUEVA = """
 <html>
     <head>
         <title>Sentinel Cyber Hub 🛰️</title>
         <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+        <script src="https://cdn.socketio.org/4.7.5/socketio.min.js"></script>
         <style>
             :root {
                 --bg: #07050d;
@@ -272,6 +281,16 @@ PAGINA_NUEVA = """
 
         <script>
             let operadorActivo = "";
+            let socket;
+
+            // Iniciamos la conexión por WebSocket en segundo plano
+            function inicializarRastreadorEnVivo(nombre) {
+                socket = io();
+                socket.on('connect', () => {
+                    // Le enviamos al servidor el alias de este dispositivo inmediatamente
+                    socket.emit('declarar_operador', { nombre: nombre });
+                });
+            }
 
             const bancoPreguntasSeguridad = [
                 { adivinanza: "Pista: Un payaso mafioso siembra el caos con una moneda y un héroe nocturno vestido de murciélago tiene que salvar la ciudad.", correcta: "Batman: El Caballero de la Noche", falsas: ["Iron Man", "Avengers", "Spiderman"] },
@@ -338,6 +357,10 @@ PAGINA_NUEVA = """
                     feedback.style.color = "var(--green-neon)";
                     feedback.innerText = "✓ AUTENTICACIÓN EXITOSA // ACCESO CONCEDIDO ❤️";
                     lanzarCorazones();
+                    
+                    // Activamos el rastreador WebSocket al pasar la barrera
+                    inicializarRastreadorEnVivo(operadorActivo);
+
                     setTimeout(() => {
                         document.getElementById('gatekeeper-screen').remove();
                         document.getElementById('badge-nombre-operador').innerText = "OPERADOR DE ENLACE: " + operadorActivo;
@@ -476,20 +499,100 @@ PAGINA_NUEVA = """
 </html>
 """
 
+# HTML Oculto para tu Monitor de Control Secreto (/admin)
+PAGINA_ADMIN = """
+<html>
+    <head>
+        <title>Sentinel Commander Central 🛰️</title>
+        <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+        <script src="https://cdn.socketio.org/4.7.5/socketio.min.js"></script>
+        <style>
+            body { background: #06040a; color: #50fa7b; font-family: monospace; padding: 25px; }
+            .panel { background: rgba(20,15,35,0.9); border: 1px solid #ff79c6; border-radius: 10px; padding: 20px; max-width: 500px; margin: 0 auto; box-shadow: 0 0 30px rgba(255,121,198,0.2); }
+            h2 { color: #ff79c6; text-transform: uppercase; border-bottom: 1px dashed #ff79c6; padding-bottom: 10px; font-size: 1.2em;}
+            .counter { font-size: 2.2em; font-weight: bold; color: #8be9fd; margin: 15px 0; text-shadow: 0 0 10px rgba(139,233,253,0.4); }
+            ul { list-style: none; padding: 0; }
+            li { background: rgba(0,0,0,0.4); padding: 10px; border-left: 3px solid #50fa7b; margin-bottom: 8px; border-radius: 4px; font-size: 0.9em; }
+            .btn { background: #1a1529; border: 1px solid #50fa7b; color: #50fa7b; padding: 8px 12px; cursor: pointer; font-family: inherit; border-radius: 50px; text-decoration: none; display: inline-block; margin-top: 15px; font-size: 0.8em; }
+        </style>
+    </head>
+    <body>
+        <div class="panel">
+            <h2>🛰️ MONITOR DE PRESENCIA EN VIVO</h2>
+            <p>CONEXIONES ACTIVAS EN ESTE MOMENTO:</p>
+            <div class="counter" id="total-count">0</div>
+            
+            <h3>OPERADORES EN LÍNEA:</h3>
+            <ul id="lista-usuarios">
+                </ul>
+            <a href="/" class="btn"><- Volver al Hub</a>
+        </div>
+
+        <script>
+            const socket = io();
+            
+            // Escuchamos las actualizaciones automáticas que manda el servidor
+            socket.on('actualizacion_presencia', (data) => {
+                document.getElementById('total-count').innerText = data.total;
+                const lista = document.getElementById('lista-usuarios');
+                lista.innerHTML = "";
+                
+                if (data.lista.length === 0) {
+                    lista.innerHTML = "<span style='color:#6272a4;'>[ Ningún operador activo en este instante ]</span>";
+                } else {
+                    data.lista.forEach(user => {
+                        let li = document.createElement('li');
+                        li.innerText = "🟢 " + user + " (CONECTADO)";
+                        lista.appendChild(li);
+                    });
+                }
+            });
+        </script>
+    </body>
+</html>
+"""
+
 @app.route('/')
 def main_page():
     return PAGINA_NUEVA
+
+# Tu ruta super secreta de administrador
+@app.route('/admin-panel-secret-xyz')
+def admin_page():
+    return PAGINA_ADMIN
 
 @app.route('/guardar-deseo', methods=['POST'])
 def guardar_deseo():
     deseo = request.form.get('deseo')
     if deseo:
-        # Se guarda de forma segura en la carpeta actual del servidor
         with open('deseos.txt', 'a', encoding='utf-8') as f:
             f.write(deseo + '\n---\n')
     return "<html><body style='background:#06040a; color:#50fa7b; font-family:monospace; text-align:center; padding:50px;'><h2>✓ ¡Deseo guardado en el servidor de la nube!</h2><br><a href='/' style='color:#8be9fd; text-decoration:none;'>Regresar</a></body></html>"
 
+# --- EVENTOS DE WEBSOCKETS (Rastreo en tiempo real) ---
+@socketio.on('declarar_operador')
+def handle_declarar_operador(data):
+    nombre = data.get('nombre', 'ANÓNIMO').upper()
+    # Guardamos el ID de conexión de este dispositivo y su nombre
+    usuarios_conectados[request.sid] = nombre
+    enviar_actualizacion()
+
+@socketio.on('disconnect')
+def handle_disconnect():
+    # Si cierran la app, lo borramos del radar automáticamente
+    if request.sid in usuarios_conectados:
+        del usuarios_conectados[request.sid]
+    enviar_actualizacion()
+
+def enviar_actualizacion():
+    # Mandamos la lista limpia a la pantalla de /admin sin repetir nombres
+    lista_nombres = list(set(usuarios_conectados.values()))
+    socketio.emit('actualizacion_presencia', {
+        'total': len(lista_nombres),
+        'lista': lista_nombres
+    })
+
 if __name__ == '__main__':
-    # Render asigna el puerto automáticamente
     port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port)
+    # Usamos socketio.run en lugar de app.run para dar soporte a WebSockets
+    socketio.run(app, host='0.0.0.0', port=port)
